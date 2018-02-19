@@ -81,7 +81,7 @@ def request_stats_csv():
 
 @app.route("/stats/distribution/csv")
 def distribution_stats_csv():
-    return send_file('/_distributions.csv', attachment_filename='distributions.csv')
+    return send_file('/_distribution.csv', attachment_filename='distributions.csv')
 
 @app.route('/stats/requests')
 @memoize(timeout=DEFAULT_CACHE_TIME, dynamic_timeout=True)

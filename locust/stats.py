@@ -728,7 +728,7 @@ def requests_csv():
             s.avg_content_length,
             s.total_rps,
         ))
-    return "\n".join(rows)
+    return "\n".join(rows) +"\n"
 
 def distribution_csv():
     """Returns the contents of the 'distribution' tab as CSV."""
@@ -741,4 +741,4 @@ def distribution_csv():
         else:
             rows.append('"%s",0,"N/A","N/A","N/A","N/A","N/A","N/A","N/A","N/A","N/A"' % s.name)
 
-    return "\n".join(rows)
+    return "\n".join(rows) + "\n"
