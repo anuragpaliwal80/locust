@@ -661,38 +661,38 @@ def stats_writer(base_filepath):
         write_stat_csvs(base_filepath)
         gevent.sleep(CSV_STATS_INTERVAL_SEC)
 
-"""Creates the requests and distribution csvs."""
-with open(base_filepath + '_requests.csv', "a") as f:
-    header = ",".join([
-            '"Method"',
-            '"Name"',
-            '"# requests"',
-            '"# failures"',
-            '"Median response time"',
-            '"Average response time"',
-            '"Min response time"',
-            '"Max response time"',
-            '"Average Content Size"',
-            '"Requests/s"',
-        ])
-    f.write(header)
-
-with open(base_filepath + '_distribution.csv', 'a') as f:
-
-    header = ",".join((
-        '"Name"',
-        '"# requests"',
-        '"50%"',
-        '"66%"',
-        '"75%"',
-        '"80%"',
-        '"90%"',
-        '"95%"',
-        '"98%"',
-        '"99%"',
-        '"100%"',
-    ))
-    f.write(header)
+# """Creates the requests and distribution csvs."""
+# with open(base_filepath + '_requests.csv', "a") as f:
+#     header = ",".join([
+#             '"Method"',
+#             '"Name"',
+#             '"# requests"',
+#             '"# failures"',
+#             '"Median response time"',
+#             '"Average response time"',
+#             '"Min response time"',
+#             '"Max response time"',
+#             '"Average Content Size"',
+#             '"Requests/s"',
+#         ])
+#     f.write(header)
+#
+# with open(base_filepath + '_distribution.csv', 'a') as f:
+#
+#     header = ",".join((
+#         '"Name"',
+#         '"# requests"',
+#         '"50%"',
+#         '"66%"',
+#         '"75%"',
+#         '"80%"',
+#         '"90%"',
+#         '"95%"',
+#         '"98%"',
+#         '"99%"',
+#         '"100%"',
+#     ))
+#     f.write(header)
 
 def write_stat_csvs(base_filepath):
     """Writes the requests and distribution csvs."""
