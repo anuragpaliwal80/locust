@@ -661,46 +661,49 @@ def stats_writer(base_filepath):
         write_stat_csvs(base_filepath)
         gevent.sleep(CSV_STATS_INTERVAL_SEC)
 
-# """Creates the requests and distribution csvs."""
-# with open(base_filepath + '_requests.csv', "a") as f:
-#     header = ",".join([
-#             '"Method"',
-#             '"Name"',
-#             '"# requests"',
-#             '"# failures"',
-#             '"Median response time"',
-#             '"Average response time"',
-#             '"Min response time"',
-#             '"Max response time"',
-#             '"Average Content Size"',
-#             '"Requests/s"',
-#         ])
-#     f.write(header)
-#
-# with open(base_filepath + '_distribution.csv', 'a') as f:
-#
-#     header = ",".join((
-#         '"Name"',
-#         '"# requests"',
-#         '"50%"',
-#         '"66%"',
-#         '"75%"',
-#         '"80%"',
-#         '"90%"',
-#         '"95%"',
-#         '"98%"',
-#         '"99%"',
-#         '"100%"',
-#     ))
-#     f.write(header)
+csv_requests_header_written = False
+csv_distributions_header_written = False
 
 def write_stat_csvs(base_filepath):
     """Writes the requests and distribution csvs."""
     with open(base_filepath + '_requests.csv', "a") as f:
         """Returns the contents of the 'requests' tab as CSV."""
+        if not csv_requests_header_written:
+            header = ",".join([
+                    '"Method"',
+                    '"Name"',
+                    '"# requests"',
+                    '"# failures"',
+                    '"Median response time"',
+                    '"Average response time"',
+                    '"Min response time"',
+                    '"Max response time"',
+                    '"Average Content Size"',
+                    '"Requests/s"',
+                    '"\n"',
+                ])
+            f.write(header)
+            csv_requests_header_written=True
         f.write(requests_csv())
 
     with open(base_filepath + '_distribution.csv', 'a') as f:
+        if not csv_distributions_header_written:
+            header = ",".join((
+                '"Name"',
+                '"# requests"',
+                '"50%"',
+                '"66%"',
+                '"75%"',
+                '"80%"',
+                '"90%"',
+                '"95%"',
+                '"98%"',
+                '"99%"',
+                '"100%"',
+                '"\n"',
+            ))
+            f.write(header)
+            csv_distributions_header_written=True
         f.write(distribution_csv())
 
 
@@ -711,7 +714,7 @@ def sort_stats(stats):
 def requests_csv():
     from . import runners
 
-    row = []
+    rows = []
 
     for s in chain(sort_stats(runners.locust_runner.request_stats), [runners.locust_runner.stats.total]):
         rows.append('"%s","%s",%i,%i,%i,%i,%i,%i,%i,%.2f' % (
