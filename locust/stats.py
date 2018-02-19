@@ -127,8 +127,8 @@ class RequestStats(object):
         """
         self.start_time = time.time()
         self.total.reset()
-        self.remove_file("/_distribution.csv")
-        self.remove_file("/_requests.csv")
+        remove_file("/_distribution.csv")
+        remove_file("/_requests.csv")
         for r in six.itervalues(self.entries):
             r.reset()
 
@@ -137,8 +137,8 @@ class RequestStats(object):
         """
         Remove all stats entries and errors
         """
-        self.remove_file("/_distribution.csv")
-        self.remove_file("/_requests.csv")
+        remove_file("/_distribution.csv")
+        remove_file("/_requests.csv")
         self.total = StatsEntry(self, "Total", None, use_response_times_cache=True)
         self.entries = {}
         self.errors = {}
