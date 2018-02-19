@@ -11,12 +11,12 @@ from six.moves import xrange
 from . import events
 from .exception import StopLocust
 from .log import console_logger
-
+import os
 STATS_NAME_WIDTH = 60
 
 """Default interval for how frequently the CSV file is written if this option
 is configured."""
-CSV_STATS_INTERVAL_SEC = 2
+CSV_STATS_INTERVAL_SEC = 5
 
 """Default interval for how frequently results are written to console."""
 CONSOLE_STATS_INTERVAL_SEC = 2
@@ -115,19 +115,30 @@ class RequestStats(object):
             self.entries[(name, method)] = entry
         return entry
 
+    def remove_file(filename):
+        try:
+            os.remove(filename)
+        except OSError:
+            pass
+
     def reset_all(self):
         """
         Go through all stats entries and reset them to zero
         """
         self.start_time = time.time()
         self.total.reset()
+        self.remove_file("/_distribution.csv")
+        self.remove_file("/_requests.csv")
         for r in six.itervalues(self.entries):
             r.reset()
+
 
     def clear_all(self):
         """
         Remove all stats entries and errors
         """
+        self.remove_file("/_distribution.csv")
+        self.remove_file("/_requests.csv")
         self.total = StatsEntry(self, "Total", None, use_response_times_cache=True)
         self.entries = {}
         self.errors = {}
