@@ -666,7 +666,7 @@ csv_distributions_header_written = False
 
 def write_stat_csvs(base_filepath):
     """Writes the requests and distribution csvs."""
-    with open(base_filepath + '_requests.csv', "a") as f:
+    with open(base_filepath + '_requests.csv', "a+") as f:
         """Returns the contents of the 'requests' tab as CSV."""
         if not csv_requests_header_written:
             header = ",".join([
@@ -686,7 +686,7 @@ def write_stat_csvs(base_filepath):
             csv_requests_header_written=True
         f.write(requests_csv())
 
-    with open(base_filepath + '_distribution.csv', 'a') as f:
+    with open(base_filepath + '_distribution.csv', 'a+') as f:
         if not csv_distributions_header_written:
             header = ",".join((
                 '"Name"',
