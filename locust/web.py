@@ -12,8 +12,11 @@ import six
 from flask import Flask, make_response, jsonify, render_template, request
 from gevent import pywsgi
 
+
 from locust import __version__ as version
 from six.moves import StringIO, xrange
+from gevent import wsgi
+from flask import Flask, jsonify, make_response, request, render_template
 
 from . import runners
 from .runners import MasterLocustRunner
@@ -43,7 +46,7 @@ def index():
         host = runners.locust_runner.locust_classes[0].host
     else:
         host = None
-    
+
     return render_template("index.html",
         state=runners.locust_runner.state,
         is_distributed=is_distributed,
@@ -51,6 +54,71 @@ def index():
         version=version,
         host=host
     )
+
+
+@app.route('/metrics')
+def metrics():
+    is_distributed = isinstance(runners.locust_runner, MasterLocustRunner)
+    if is_distributed:
+        slave_count = runners.locust_runner.slave_count
+    else:
+        slave_count = 0
+
+    if runners.locust_runner.host:
+        host = runners.locust_runner.host
+    elif len(runners.locust_runner.locust_classes) > 0:
+        host = runners.locust_runner.locust_classes[0].host
+    else:
+        host = None
+
+    state = 1
+    if runners.locust_runner.state != "running":
+        state = 0
+
+    rows = []
+    for s in chain(_sort_stats(runners.locust_runner.request_stats), [runners.locust_runner.stats.aggregated_stats("Total", full_request_history=True)]):
+        if s.name != "Total":
+            rows.append("locust_request_count{{endpoint=\"{}\", method=\"{}\"}} {}\n"
+                        "locust_request_per_second{{endpoint=\"{}\"}} {}\n"
+                        "locust_failed_requests{{endpoint=\"{}\", method=\"{}\"}} {}\n"
+                        "locust_average_response{{endpoint=\"{}\", method=\"{}\"}} {}\n"
+                        "locust_average_content_length{{endpoint=\"{}\", method=\"{}\"}} {}\n"
+                        "locust_max_response_time{{endpoint=\"{}\", method=\"{}\"}} {}\n"
+                        "locust_running{{site=\"{}\"}} {}\n"
+                        "locust_workers{{site=\"{}\"}} {}\n"
+                        "locust_users{{site=\"{}\"}} {}\n".format(
+                            s.name,
+                            s.method,
+                            s.num_requests,
+                            s.name,
+                            s.total_rps,
+                            s.name,
+                            s.method,
+                            s.num_failures,
+                            s.name,
+                            s.method,
+                            s.avg_response_time,
+                            s.name,
+                            s.method,
+                            s.avg_content_length,
+                            s.name,
+                            s.method,
+                            s.max_response_time,
+                            host,
+                            state,
+                            host,
+                            slave_count,
+                            host,
+                            runners.locust_runner.user_count,
+                        )
+            )
+
+    response = make_response("".join(rows))
+    response.mimetype = "text/plain; charset=utf-8'"
+    response.content_type = "text/plain; charset=utf-8'"
+    response.headers["Content-Type"] = "text/plain; charset=utf-8'"
+    return response
+
 
 @app.route('/swarm', methods=["POST"])
 def swarm():
@@ -70,7 +138,7 @@ def stop():
 def reset_stats():
     runners.locust_runner.stats.reset_all()
     return "ok"
-    
+
 @app.route("/stats/requests/csv")
 def request_stats_csv():
     response = make_response(requests_csv())
@@ -93,7 +161,7 @@ def distribution_stats_csv():
 @memoize(timeout=DEFAULT_CACHE_TIME, dynamic_timeout=True)
 def request_stats():
     stats = []
-    
+
     for s in chain(sort_stats(runners.locust_runner.request_stats), [runners.locust_runner.stats.total]):
         stats.append({
             "method": s.method,
@@ -119,7 +187,7 @@ def request_stats():
         report["fail_ratio"] = runners.locust_runner.stats.total.fail_ratio
         report["current_response_time_percentile_95"] = runners.locust_runner.stats.total.get_current_response_time_percentile(0.95)
         report["current_response_time_percentile_50"] = runners.locust_runner.stats.total.get_current_response_time_percentile(0.5)
-    
+
     is_distributed = isinstance(runners.locust_runner, MasterLocustRunner)
     if is_distributed:
         slaves = []
@@ -127,7 +195,7 @@ def request_stats():
             slaves.append({"id":slave.id, "state":slave.state, "user_count": slave.user_count})
 
         report["slaves"] = slaves
-    
+
     report["state"] = runners.locust_runner.state
     report["user_count"] = runners.locust_runner.user_count
 
@@ -154,7 +222,7 @@ def exceptions_csv():
     for exc in six.itervalues(runners.locust_runner.exceptions):
         nodes = ", ".join(exc["nodes"])
         writer.writerow([exc["count"], exc["msg"], exc["traceback"], nodes])
-    
+
     data.seek(0)
     response = make_response(data.read())
     file_name = "exceptions_{0}.csv".format(time())
