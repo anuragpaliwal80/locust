@@ -76,7 +76,7 @@ def metrics():
         state = 0
 
     rows = []
-    for s in chain(_sort_stats(runners.locust_runner.request_stats), [runners.locust_runner.stats.aggregated_stats("Total", full_request_history=True)]):
+    for s in chain(sort_stats(runners.locust_runner.request_stats), [runners.locust_runner.stats.aggregated_stats("Total", full_request_history=True)]):
         if s.name != "Total":
             rows.append("locust_request_count{{endpoint=\"{}\", method=\"{}\"}} {}\n"
                         "locust_request_per_second{{endpoint=\"{}\"}} {}\n"
