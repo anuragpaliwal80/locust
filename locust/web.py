@@ -9,7 +9,7 @@ from itertools import chain
 from time import time
 
 import six
-from flask import Flask, make_response, jsonify, render_template, request
+from flask import Flask, make_response, jsonify, render_template, request, send_file
 from gevent import pywsgi
 
 
@@ -141,21 +141,11 @@ def reset_stats():
 
 @app.route("/stats/requests/csv")
 def request_stats_csv():
-    response = make_response(requests_csv())
-    file_name = "requests_{0}.csv".format(time())
-    disposition = "attachment;filename={0}".format(file_name)
-    response.headers["Content-type"] = "text/csv"
-    response.headers["Content-disposition"] = disposition
-    return response
+    return send_file('/_requests.csv', attachment_filename='requests.csv')
 
 @app.route("/stats/distribution/csv")
 def distribution_stats_csv():
-    response = make_response(distribution_csv())
-    file_name = "distribution_{0}.csv".format(time())
-    disposition = "attachment;filename={0}".format(file_name)
-    response.headers["Content-type"] = "text/csv"
-    response.headers["Content-disposition"] = disposition
-    return response
+    return send_file('/_distribution.csv', attachment_filename='distributions.csv')
 
 @app.route('/stats/requests')
 @memoize(timeout=DEFAULT_CACHE_TIME, dynamic_timeout=True)
