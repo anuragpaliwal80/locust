@@ -6,6 +6,7 @@ from itertools import chain
 
 import gevent
 import six
+import sys
 from six.moves import xrange
 
 from . import events
@@ -214,6 +215,38 @@ class StatsEntry(object):
     last_request_timestamp = None
     """ Time of the last request for this entry """
 
+    # fields for holding server processing times
+    min_server_processing = None
+    max_server_processing = None
+
+    # fields for holding dns lookup times
+    min_dns_lookup = None
+    max_dns_lookup = None
+
+    # fields for holding tcp connection times
+    min_tcp_connection = None
+    max_tcp_connection = None
+
+    # fields for holding pre transfer times
+    min_pre_transfer = None
+    max_pre_transfer = None
+
+    # fields for holding connect times
+    min_connect = None
+    max_connect = None
+
+    # fields for holding start transfer times
+    min_start_transfer = None
+    max_start_transfer = None
+
+    # fields for holding tls handshake times
+    min_tls_handshake = None
+    max_tls_handshake = None
+
+    # fields for holding name lookup times
+    min_name_lookup = None
+    max_name_lookup = None
+
     def __init__(self, stats, name, method, use_response_times_cache=False):
         self.stats = stats
         self.name = name
@@ -232,6 +265,23 @@ class StatsEntry(object):
         self.last_request_timestamp = int(time.time())
         self.num_reqs_per_sec = {}
         self.total_content_length = 0
+        self.min_server_processing = sys.maxsize
+        self.min_dns_lookup = sys.maxsize
+        self.max_server_processing = 0
+        self.max_dns_lookup = 0
+        self.min_tcp_connection = sys.maxsize
+        self.max_tcp_connection = 0
+        self.min_pre_transfer = sys.maxsize
+        self.max_pre_transfer = 0
+        self.min_connect = sys.maxsize
+        self.max_connect = 0
+        self.min_start_transfer = sys.maxsize
+        self.max_start_transfer = 0
+        self.min_tls_handshake = sys.maxsize
+        self.max_tls_handshake = 0
+        self.min_name_lookup = sys.maxsize
+        self.max_name_lookup = 0
+
         if self.use_response_times_cache:
             self.response_times_cache = OrderedDict()
             self._cache_response_times(int(time.time()))
@@ -345,7 +395,22 @@ class StatsEntry(object):
         self.max_response_time = max(self.max_response_time, other.max_response_time)
         self.min_response_time = min(self.min_response_time or 0, other.min_response_time or 0) or other.min_response_time
         self.total_content_length = self.total_content_length + other.total_content_length
-
+        self.min_server_processing = min(self.min_server_processing, other.min_server_processing)
+        self.max_server_processing = max(self.max_server_processing, other.max_server_processing)
+        self.min_dns_lookup = min(self.min_dns_lookup, other.min_dns_lookup)
+        self.max_dns_lookup = max(self.max_dns_lookup, other.max_dns_lookup)
+        self.min_tcp_connection = min(self.min_tcp_connection, other.min_tcp_connection)
+        self.max_tcp_connection = max(self.max_tcp_connection, other.max_tcp_connection)
+        self.min_pre_transfer = min(self.min_pre_transfer, other.min_pre_transfer)
+        self.max_pre_transfer = max(self.max_pre_transfer, other.max_pre_transfer)
+        self.min_connect = min(self.min_connect, other.min_connect)
+        self.max_connect = max(self.max_connect, other.max_connect)
+        self.min_start_transfer = min(self.min_start_transfer, other.min_start_transfer)
+        self.max_start_transfer = max(self.max_start_transfer, other.max_start_transfer)
+        self.min_tls_handshake = min(self.min_tls_handshake, other.min_tls_handshake)
+        self.max_tls_handshake = max(self.max_tls_handshake, other.max_tls_handshake)
+        self.min_name_lookup = min(self.min_name_lookup, other.min_name_lookup)
+        self.max_name_lookup = max(self.max_name_lookup, other.max_name_lookup)
         for key in other.response_times:
             self.response_times[key] = self.response_times.get(key, 0) + other.response_times[key]
         for key in other.num_reqs_per_sec:
@@ -365,6 +430,22 @@ class StatsEntry(object):
             "total_content_length": self.total_content_length,
             "response_times": self.response_times,
             "num_reqs_per_sec": self.num_reqs_per_sec,
+            "min_server_processing" : self.min_server_processing,
+            "max_server_processing" : self.max_server_processing,
+            "min_dns_lookup" : self.min_dns_lookup,
+            "max_dns_lookup" : self.max_dns_lookup,
+            "min_tcp_connection" : self.min_tcp_connection,
+            "max_tcp_connection" : self.max_tcp_connection,
+            "min_pre_transfer" : self.min_pre_transfer,
+            "max_pre_transfer" : self.max_pre_transfer,
+            "min_connect" : self.min_connect,
+            "max_connect" : self.max_connect,
+            "min_start_transfer" : self.min_start_transfer,
+            "max_start_transfer" : self.max_start_transfer,
+            "min_tls_handshake" : self.min_tls_handshake,
+            "max_tls_handshake" : self.max_tls_handshake,
+            "min_name_lookup" : self.min_name_lookup,
+            "max_name_lookup" : self.max_name_lookup,
         }
 
     @classmethod
@@ -381,9 +462,27 @@ class StatsEntry(object):
             "total_content_length",
             "response_times",
             "num_reqs_per_sec",
+            "server_processing",
+            "dns_lookup",
+            "tcp_connection",
+            "name_lookup",
+            "tls_handshake",
+            "start_tranfer",
+            "connect",
+            "pre_tranfer",
         ]:
-            setattr(obj, key, data[key])
+            if  key == "server_processing" or key == "dns_lookup" or  key == "tcp_connection" or key == "name_lookup" or key == "tls_handshake" or key == "start_tranfer" or key == "connect" or key == "pre_tranfer":
+                StatsEntry.set_http_stats_key(obj,key,data)
+            else:
+                setattr(obj, key, data[key])
         return obj
+
+    @classmethod
+    def set_http_stats_key(self, obj, key, data):
+        max_key = "max_" + key
+        min_key = "min_" + key
+        setattr(obj, min_key, data[key]["min_response_time"])
+        setattr(obj, max_key, data[key]["max_response_time"])
 
     def get_stripped_report(self):
         """
