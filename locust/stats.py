@@ -35,7 +35,7 @@ class HttpStatDetails(object):
     min_time = None
     max_time = None
 
-    def updateStatDetail(self, min_time, max_time)
+    def updateStatDetail(self, min_time, max_time):
         self.min_time = min_time
         self.max_time = max_time
 
@@ -75,14 +75,14 @@ class HttpStats(object):
         self.name_lookup_time.updateStatDetail(sys.maxsize,0)
 
     def __init__(self):
-        server_processing_time = HttpStatDetails()
-        dns_lookup_time = HttpStatDetails()
-        tcp_connection_time = HttpStatDetails()
-        pre_transfer_time = HttpStatDetails()
-        connect_time = HttpStatDetails()
-        start_transfer_time = HttpStatDetails()
-        tls_handshake_time = HttpStatDetails()
-        name_lookup_time = HttpStatDetails()
+        self.server_processing_time = HttpStatDetails()
+        self.dns_lookup_time = HttpStatDetails()
+        self.tcp_connection_time = HttpStatDetails()
+        self.pre_transfer_time = HttpStatDetails()
+        self.connect_time = HttpStatDetails()
+        self.start_transfer_time = HttpStatDetails()
+        self.tls_handshake_time = HttpStatDetails()
+        self.name_lookup_time = HttpStatDetails()
         pass
 
     def updateStats(self, stats_entry, other_stats_entry):
