@@ -96,6 +96,22 @@ def request_stats():
             "current_rps": s.current_rps,
             "median_response_time": s.median_response_time,
             "avg_content_length": s.avg_content_length,
+            "min_server_processing" : s.http_stats.server_processing_time.min_time,
+            "max_server_processing" : s.http_stats.server_processing_time.max_time,
+            "min_dns_lookup" : s.http_stats.dns_lookup_time.min_time,
+            "max_dns_lookup" : s.http_stats.dns_lookup_time.max_time,
+            "min_tcp_connection" : s.http_stats.tcp_connection_time.min_time,
+            "max_tcp_connection" : s.http_stats.tcp_connection_time.max_time,
+            "min_pre_transfer" : s.http_stats.pre_transfer_time.min_time,
+            "max_pre_transfer" : s.http_stats.pre_transfer_time.max_time,
+            "min_connect" : s.http_stats.connect_time.min_time,
+            "max_connect" : s.http_stats.connect_time.max_time,
+            "min_start_transfer" : s.http_stats.start_transfer_time.min_time,
+            "max_start_transfer" : s.http_stats.start_transfer_time.max_time,
+            "min_tls_handshake" : s.http_stats.tls_handshake_time.min_time,
+            "max_tls_handshake" : s.http_stats.tls_handshake_time.max_time,
+            "min_name_lookup" : s.http_stats.name_lookup_time.min_time,
+            "max_name_lookup" : s.http_stats.name_lookup_time.max_time,
         })
 
     errors = [e.to_dict() for e in six.itervalues(runners.locust_runner.errors)]

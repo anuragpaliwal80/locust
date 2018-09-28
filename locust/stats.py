@@ -6,6 +6,7 @@ from itertools import chain
 
 import gevent
 import six
+import sys
 from six.moves import xrange
 
 from . import events
@@ -30,6 +31,69 @@ CURRENT_RESPONSE_TIME_PERCENTILE_WINDOW = 10
 
 CachedResponseTimes = namedtuple("CachedResponseTimes", ["response_times", "num_requests"])
 
+class HttpStatDetails(object):
+    min_time = None
+    max_time = None
+
+    def updateStatDetail(self, min_time, max_time):
+        self.min_time = min_time
+        self.max_time = max_time
+
+class HttpStats(object):
+    # fields for holding server processing times
+    server_processing_time = None
+
+    # fields for holding dns lookup times
+    dns_lookup_time = None
+
+    # fields for holding tcp connection times
+    tcp_connection_time = None
+
+    # fields for holding pre transfer times
+    pre_transfer_time = None
+
+    # fields for holding connect times
+    connect_time = None
+
+    # fields for holding start transfer times
+    start_transfer_time = None
+
+    # fields for holding tls handshake times
+    tls_handshake_time = None
+
+    # fields for holding name lookup times
+    name_lookup_time = None
+
+    def resetHttpStats(self):
+        self.server_processing_time.updateStatDetail(sys.maxsize,0)
+        self.dns_lookup_time.updateStatDetail(sys.maxsize,0)
+        self.tcp_connection_time.updateStatDetail(sys.maxsize,0)
+        self.pre_transfer_time.updateStatDetail(sys.maxsize,0)
+        self.connect_time.updateStatDetail(sys.maxsize,0)
+        self.start_transfer_time.updateStatDetail(sys.maxsize,0)
+        self.tls_handshake_time.updateStatDetail(sys.maxsize,0)
+        self.name_lookup_time.updateStatDetail(sys.maxsize,0)
+
+    def __init__(self):
+        self.server_processing_time = HttpStatDetails()
+        self.dns_lookup_time = HttpStatDetails()
+        self.tcp_connection_time = HttpStatDetails()
+        self.pre_transfer_time = HttpStatDetails()
+        self.connect_time = HttpStatDetails()
+        self.start_transfer_time = HttpStatDetails()
+        self.tls_handshake_time = HttpStatDetails()
+        self.name_lookup_time = HttpStatDetails()
+        pass
+
+    def updateStats(self, stats_entry, other_stats_entry):
+        self.server_processing_time.updateStatDetail(min(stats_entry.server_processing_time.min_time, other_stats_entry.server_processing_time.min_time),max(stats_entry.server_processing_time.max_time, other_stats_entry.server_processing_time.max_time))
+        self.dns_lookup_time.updateStatDetail(min(stats_entry.dns_lookup_time.min_time, other_stats_entry.dns_lookup_time.min_time),max(stats_entry.dns_lookup_time.max_time, other_stats_entry.dns_lookup_time.max_time))
+        self.tcp_connection_time.updateStatDetail(min(stats_entry.tcp_connection_time.min_time, other_stats_entry.tcp_connection_time.min_time),max(stats_entry.tcp_connection_time.max_time, other_stats_entry.tcp_connection_time.max_time))
+        self.pre_transfer_time.updateStatDetail(min(stats_entry.pre_transfer_time.min_time, other_stats_entry.pre_transfer_time.min_time),max(stats_entry.pre_transfer_time.max_time, other_stats_entry.pre_transfer_time.max_time))
+        self.connect_time.updateStatDetail(min(stats_entry.connect_time.min_time, other_stats_entry.connect_time.min_time),max(stats_entry.connect_time.max_time, other_stats_entry.connect_time.max_time))
+        self.start_transfer_time.updateStatDetail(min(stats_entry.start_transfer_time.min_time, other_stats_entry.start_transfer_time.min_time),max(stats_entry.start_transfer_time.max_time, other_stats_entry.start_transfer_time.max_time))
+        self.tls_handshake_time.updateStatDetail(min(stats_entry.tls_handshake_time.min_time, other_stats_entry.tls_handshake_time.min_time),max(stats_entry.tls_handshake_time.max_time, other_stats_entry.tls_handshake_time.max_time))
+        self.name_lookup_time.updateStatDetail(min(stats_entry.name_lookup_time.min_time, other_stats_entry.name_lookup_time.min_time),max(stats_entry.name_lookup_time.max_time, other_stats_entry.name_lookup_time.max_time))
 
 class RequestStatsAdditionError(Exception):
     pass
@@ -214,11 +278,15 @@ class StatsEntry(object):
     last_request_timestamp = None
     """ Time of the last request for this entry """
 
+    # This property will hold the http stats
+    http_stats = None
+
     def __init__(self, stats, name, method, use_response_times_cache=False):
         self.stats = stats
         self.name = name
         self.method = method
         self.use_response_times_cache = use_response_times_cache
+        self.http_stats = HttpStats()
         self.reset()
 
     def reset(self):
@@ -232,6 +300,8 @@ class StatsEntry(object):
         self.last_request_timestamp = int(time.time())
         self.num_reqs_per_sec = {}
         self.total_content_length = 0
+        self.http_stats.resetHttpStats()
+
         if self.use_response_times_cache:
             self.response_times_cache = OrderedDict()
             self._cache_response_times(int(time.time()))
@@ -345,7 +415,7 @@ class StatsEntry(object):
         self.max_response_time = max(self.max_response_time, other.max_response_time)
         self.min_response_time = min(self.min_response_time or 0, other.min_response_time or 0) or other.min_response_time
         self.total_content_length = self.total_content_length + other.total_content_length
-
+        self.http_stats.updateStats(self.http_stats, other.http_stats)
         for key in other.response_times:
             self.response_times[key] = self.response_times.get(key, 0) + other.response_times[key]
         for key in other.num_reqs_per_sec:
@@ -365,6 +435,22 @@ class StatsEntry(object):
             "total_content_length": self.total_content_length,
             "response_times": self.response_times,
             "num_reqs_per_sec": self.num_reqs_per_sec,
+            "min_server_processing" : self.http_stats.server_processing_time.min_time,
+            "max_server_processing" : self.http_stats.server_processing_time.max_time,
+            "min_dns_lookup" : self.http_stats.dns_lookup_time.min_time,
+            "max_dns_lookup" : self.http_stats.dns_lookup_time.max_time,
+            "min_tcp_connection" : self.http_stats.tcp_connection_time.min_time,
+            "max_tcp_connection" : self.http_stats.tcp_connection_time.max_time,
+            "min_pre_transfer" : self.http_stats.pre_transfer_time.min_time,
+            "max_pre_transfer" : self.http_stats.pre_transfer_time.max_time,
+            "min_connect" : self.http_stats.connect_time.min_time,
+            "max_connect" : self.http_stats.connect_time.max_time,
+            "min_start_transfer" : self.http_stats.start_transfer_time.min_time,
+            "max_start_transfer" : self.http_stats.start_transfer_time.max_time,
+            "min_tls_handshake" : self.http_stats.tls_handshake_time.min_time,
+            "max_tls_handshake" : self.http_stats.tls_handshake_time.max_time,
+            "min_name_lookup" : self.http_stats.name_lookup_time.min_time,
+            "max_name_lookup" : self.http_stats.name_lookup_time.max_time,
         }
 
     @classmethod
@@ -381,9 +467,41 @@ class StatsEntry(object):
             "total_content_length",
             "response_times",
             "num_reqs_per_sec",
+            "server_processing",
+            "dns_lookup",
+            "tcp_connection",
+            "name_lookup",
+            "tls_handshake",
+            "start_tranfer",
+            "connect",
+            "pre_tranfer",
         ]:
-            setattr(obj, key, data[key])
+            if  key == "server_processing":
+                StatsEntry.set_http_stats_key(obj.http_stats.server_processing_time,key,data)
+            elif key == "dns_lookup":
+                StatsEntry.set_http_stats_key(obj.http_stats.dns_lookup_time,key,data)
+            elif key == "tcp_connection":
+                StatsEntry.set_http_stats_key(obj.http_stats.tcp_connection_time,key,data)
+            elif key == "name_lookup":
+                StatsEntry.set_http_stats_key(obj.http_stats.name_lookup_time,key,data)
+            elif key == "tls_handshake":
+                StatsEntry.set_http_stats_key(obj.http_stats.tls_handshake_time,key,data)
+            elif key == "start_tranfer":
+                StatsEntry.set_http_stats_key(obj.http_stats.start_transfer_time,key,data)
+            elif key == "connect":
+                StatsEntry.set_http_stats_key(obj.http_stats.connect_time,key,data)
+            elif key == "pre_tranfer":
+                StatsEntry.set_http_stats_key(obj.http_stats.pre_transfer_time,key,data)
+            else:
+                setattr(obj, key, data[key])
         return obj
+
+    @classmethod
+    def set_http_stats_key(self, obj, key, data):
+        max_key = "max_time"
+        min_key = "min_time"
+        setattr(obj, min_key, data[key]["min_response_time"])
+        setattr(obj, max_key, data[key]["max_response_time"])
 
     def get_stripped_report(self):
         """

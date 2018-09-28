@@ -112,6 +112,10 @@
                                 <th class="stats_label numeric" href="#" data-sortkey="max_response_time" title="Max response time">Max (ms)</th>
                                 <th class="stats_label numeric" href="#" data-sortkey="avg_content_length" title="Average response size">Content Size (bytes)</th>
                                 <th class="stats_label numeric" href="#" data-sortkey="current_rps" title="Current number of requests per second"># reqs/sec</th>
+                                <th class="stats_label numeric" href="#" data-sortkey="min_server_processing" title="Min server processing time"># Min Server processing</th>
+                                <th class="stats_label numeric" href="#" data-sortkey="max_server_processing" title="Max server processing time"># Max Server processing</th>
+                                <th class="stats_label numeric" href="#" data-sortkey="min_dns_lookup" title="Min dns lookup time"># Min DNS Lookup</th>
+                                <th class="stats_label numeric" href="#" data-sortkey="max_dns_lookup" title="Max dns lookup time"># Max DNS Lookup</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -227,6 +231,10 @@
             <td class="numeric"><%= this.max_response_time %></td>
             <td class="numeric"><%= Math.round(this.avg_content_length) %></td>
             <td class="numeric"><%= Math.round(this.current_rps*100)/100 %></td>
+            <td class="numeric"><%= this.min_server_processing %></td>
+            <td class="numeric"><%= this.max_server_processing %></td>
+            <td class="numeric"><%= this.min_dns_lookup %></td>
+            <td class="numeric"><%= this.max_dns_lookup %></td>
         </tr>
         <% alternate = !alternate; %>
         ]]>
